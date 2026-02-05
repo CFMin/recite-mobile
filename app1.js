@@ -102,7 +102,9 @@
   function splitSentences(text) {
     const delims = String(state.settings.sentenceDelimiters || '。！？!?') + '，,;；、';
     const regex = new RegExp(`([${delims.replace(/[\\\]\[\-\^]/g, '\\$&')}])`, 'g');
-    return text.split(regex).map(s => s.trim()).filter(Boolean);
+    const parts = text.split(regex).map(s => s.trim()).filter(Boolean);
+    // 只返回实际句子内容，不包含标点符号
+    return parts.filter(p => !delims.includes(p));
   }
 
   function chunk(array, size) {
@@ -584,6 +586,13 @@
   function updateCardButtons() {
     ui.btnCardMode.textContent = cardCheck.enabled ? '卡片检查：开' : '卡片检查：关';
     ui.btnMaskToggleAll.textContent = maskState.showAll ? '重新遮住' : '全部显示';
+    
+    // Update start button text based on state
+    if (player.running && player.paused) {
+      ui.btnStart.textContent = '继续';
+    } else {
+      ui.btnStart.textContent = '开始';
+    }
   }
 
   function renderStatus() {
@@ -1018,6 +1027,7 @@
     if (!player.running) return;
     player.paused = true;
     stopTts();
+    ui.statusLine.textContent = '已暂停，点击“开始”继续播放';
     render();
   }
 
@@ -1028,6 +1038,7 @@
       return;
     }
     player.paused = false;
+    ui.statusLine.textContent = '继续播放...';
     render();
   }
 
@@ -1456,7 +1467,13 @@
     await speak('这是朗读测试。');
   });
 
-  ui.btnStart.addEventListener('click', startPlayer);
+  ui.btnStart.addEventListener('click', () => {
+    if (player.running && player.paused) {
+      resumePlayer();
+    } else {
+      startPlayer();
+    }
+  });
   ui.btnPause.addEventListener('click', pausePlayer);
   ui.btnStop.addEventListener('click', stopPlayer);
   ui.btnPrev.addEventListener('click', gotoPrevQa);
